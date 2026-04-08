@@ -5,19 +5,16 @@ from app.core.config import settings
 
 
 class Base(DeclarativeBase):
-    """Базовый класс для всех таблиц в базе данных"""
     pass
 
 
-# движок для подключения к SQLite
 engine = create_async_engine(
     settings.DATABASE_URL, 
-    echo=True,                    # SQL-запросы в консоли 
-    connect_args={"check_same_thread": False}  # важно для SQLite
+    echo=False,  # поставь True, если хочешь видеть SQL-запросы в консоли
+    connect_args={"check_same_thread": False}
 )
 
 
-# Фабрика сессий
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     expire_on_commit=False,
@@ -25,7 +22,6 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-# Dependency для FastAPI
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
