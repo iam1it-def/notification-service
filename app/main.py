@@ -1,5 +1,7 @@
-from fastapi import FastAPI, Depends
+import logging
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
@@ -9,9 +11,16 @@ from app.models.notification import Notification, NotificationStatus
 from app.schemas.notification import NotificationCreate, NotificationResponse
 from app.crud.notification import create_notification, get_notifications
 
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
-    title="Notification Service (для Voxys)",
-    description="Простой бэкенд сервис уведомлений — проект для портфолио",
+    title="Notification Service",
+    description="Простой сервис отправки уведомлений — проект для портфолио",
     version="1.0.0"
 )
 
@@ -23,9 +32,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Глобальный обработчик ошибок
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Неожиданная ошибка: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Произошла внутренняя ошибка сервера. Попробуйте позже."}
+    )
+
 @app.get("/")
 async def root():
-    return {"message": "Сервис уведомлений запущен! Открой /docs для тестирования"}
+    return {"message": "Notification Service работает!"}
 
 
 @app.post("/notifications/", response_model=NotificationResponse)
@@ -34,8 +52,13 @@ async def create_new_notification(
     db: AsyncSession = Depends(get_db)
 ):
     """Создать новое уведомление"""
-    notification = await create_notification(db, notification_in)
-    return notification
+    try:
+        notification = await create_notification(db, notification_in)
+        logger.info(f"Создано новое уведомление для {notification_in.recipient}")
+        return notification
+    except Exception as e:
+        logger.error(f"Ошибка при создании уведомления: {e}")
+        raise HTTPException(status_code=500, detail="Не удалось создать уведомление")
 
 
 @app.get("/notifications/", response_model=List[NotificationResponse])
@@ -44,11 +67,16 @@ async def list_notifications(
     limit: int = 100, 
     db: AsyncSession = Depends(get_db)
 ):
-    """Получить список уведомлений"""
-    notifications = await get_notifications(db, skip=skip, limit=limit)
-    return notifications
+    """Получить список всех уведомлений"""
+    try:
+        notifications = await get_notifications(db, skip=skip, limit=limit)
+        logger.info(f"Возвращено {len(notifications)} уведомлений")
+        return notifications
+    except Exception as e:
+        logger.error(f"Ошибка при получении списка уведомлений: {e}")
+        raise HTTPException(status_code=500, detail="Не удалось получить список уведомлений")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8001, reload=True)

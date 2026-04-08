@@ -4,12 +4,12 @@ from app.models.notification import Notification, NotificationStatus
 from app.schemas.notification import NotificationCreate
 
 
-async def create_notification(db: AsyncSession, notification: NotificationCreate):
-    """Создать новое уведомление в базе"""
+async def create_notification(db: AsyncSession, notification_in: NotificationCreate):
+    """Создать новое уведомление в базе данных"""
     db_notification = Notification(
-        recipient=notification.recipient,
-        message=notification.message,
-        channel=notification.channel,
+        recipient=notification_in.recipient,
+        message=notification_in.message,
+        channel=notification_in.channel,
         status=NotificationStatus.PENDING
     )
     
@@ -20,8 +20,8 @@ async def create_notification(db: AsyncSession, notification: NotificationCreate
 
 
 async def get_notifications(db: AsyncSession, skip: int = 0, limit: int = 100):
-    """Получить список уведомлений"""
+    """Получить список всех уведомлений"""
     result = await db.execute(
-        select(Notification).offset(skip).limit(limit)
+        select(Notification).offset(skip).limit(limit).order_by(Notification.created_at.desc())
     )
     return result.scalars().all()

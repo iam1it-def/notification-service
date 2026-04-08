@@ -1,38 +1,28 @@
 from datetime import datetime
-from sqlalchemy import String, Text, DateTime, Enum as SQLEnum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum as SQLEnum
 import enum
+from typing import Optional
 
 from app.database import Base
 
 
-# типы статусов 
 class NotificationStatus(str, enum.Enum):
-    PENDING = "pending"      # в очереди
-    SENT = "sent"            # отправлено
-    FAILED = "failed"        # ошибка
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
 
 
 class Notification(Base):
-    """Модель уведомления в базе данных"""
+    """Модель уведомления"""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
     
-    __tablename__ = "notifications"   # имя таблицы в PostgreSQL
+    recipient = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    channel = Column(String(50), default="email")
     
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    status = Column(SQLEnum(NotificationStatus), default=NotificationStatus.PENDING)
     
-    recipient: Mapped[str] = mapped_column(String(255), nullable=False)   # кому отправить
-    message: Mapped[str] = mapped_column(Text, nullable=False)            # текст сообщения
-    channel: Mapped[str] = mapped_column(String(50), default="email")     # email, sms, telegram и т.д.
-    
-    status: Mapped[NotificationStatus] = mapped_column(
-        SQLEnum(NotificationStatus), 
-        default=NotificationStatus.PENDING
-    )
-    
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, 
-        default=datetime.utcnow,
-        nullable=False
-    )
-    
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    sent_at = Column(DateTime, nullable=True)
