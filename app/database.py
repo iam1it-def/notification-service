@@ -9,11 +9,15 @@ class Base(DeclarativeBase):
     pass
 
 
-# движок для подключения к базе данных
-engine = create_async_engine(settings.DATABASE_URL, echo=True)
+# движок для подключения к SQLite
+engine = create_async_engine(
+    settings.DATABASE_URL, 
+    echo=True,                    # SQL-запросы в консоли 
+    connect_args={"check_same_thread": False}  # важно для SQLite
+)
 
 
-#  фабрику сессий
+# Фабрика сессий
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     expire_on_commit=False,
@@ -21,6 +25,7 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
+# Dependency для FastAPI
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
