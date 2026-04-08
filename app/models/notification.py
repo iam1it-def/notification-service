@@ -1,7 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, DateTime, Enum as SQLEnum
 import enum
-from typing import Optional
 
 from app.database import Base
 
@@ -22,7 +21,10 @@ class Notification(Base):
     message = Column(Text, nullable=False)
     channel = Column(String(50), default="email")
     
+    # Исправлено: используем SQLEnum вместо Enum
     status = Column(SQLEnum(NotificationStatus), default=NotificationStatus.PENDING)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     sent_at = Column(DateTime, nullable=True)
+    
+    attempt = Column(Integer, default=0)
